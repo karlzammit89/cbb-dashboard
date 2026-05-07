@@ -27,19 +27,19 @@ ET        = ZoneInfo("America/New_York")
 CBBD_BASE = "https://api.collegebasketballdata.com"
 
 SCORING_EMOJI = {
-    "three-point": "🔥",
-    "two-point":   "🟢",
-    "free throw":  "🎯",
+    "three-point": "🎯",
+    "two-point":   "🏀",
+    "free throw":  "🔴",
     "dunk":        "💥",
-    "layup":       "🟢",
-    "tip-in":      "🟢",
+    "layup":       "🤸",
+    "tip-in":      "🏀",
 }
 PLAY_EMOJI = {
-    "turnover":  "❌",
-    "steal":     "🏃",
-    "block":     "🚫",
+    "turnover":  "🚨",
+    "steal":     "💨",
+    "block":     "🛡️",
     "foul":      "🟡",
-    "timeout":   "⏸️",
+    "timeout":   "⏳",
     "rebound":   "🔄",
     "assist":    "🤝",
     "sub":       "🔁",
@@ -304,13 +304,12 @@ if st.session_state.selected_game_id:
     all_dts      = [e["action_dt"] for e in events if e["action_dt"]]
     gs_default   = min(all_dts) if all_dts else None
     ge_default   = max(all_dts) if all_dts else None
-    all_periods  = sorted(
-        {e["period_label"] for e in events},
-        key=lambda x: (
-            x.startswith("OT"),
-            0 if x in ("H1", "H2") else int(x[2:]) + 100,
-        ),
-    )
+    def _period_sort_key(label: str) -> int:
+        if label == "H1":  return 1
+        if label == "H2":  return 2
+        try: return 2 + int(label[2:])  # OT1->3, OT2->4 ...
+        except Exception: return 99
+    all_periods = sorted({e["period_label"] for e in events}, key=_period_sort_key)
     all_teams = sorted({e["team"] for e in events if e["team"]})
 
     USE_Q  = st.checkbox("🏀 Filter by Half / OT")
