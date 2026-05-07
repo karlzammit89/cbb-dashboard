@@ -67,6 +67,8 @@ _defaults = {
     "selected_away_eid":  None,
     "selected_home_eid":  None,
     "selected_year":      None,
+    "selected_away_pts":  None,
+    "selected_home_pts":  None,
     "cached_events":      None,
     "cached_game_id":     None,
     "filtered_events":    None,
@@ -148,29 +150,6 @@ def fetch_all_cbbd_teams() -> list:
 def fetch_logo_map() -> dict:
     _, logo_map = fetch_teams_data()
     return logo_map
-
-# ──────────────────────────────────────────────────────────────
-# CBBD — FETCH GAME SCORE (authoritative)
-# ──────────────────────────────────────────────────────────────
-@st.cache_data(ttl=86400, show_spinner=False)
-def fetch_game_scores(game_id: int) -> tuple:
-    try:
-        r = requests.get(
-            f"{CBBD_BASE}/games",
-            headers=cbbd_headers(),
-            params={"id": game_id},
-            timeout=10,
-        )
-        r.raise_for_status()
-        data = r.json()
-        if isinstance(data, list) and data:
-            g = data[0]
-            away_sc = g.get("awayPoints") or g.get("away_points") or 0
-            home_sc = g.get("homePoints") or g.get("home_points") or 0
-            return int(away_sc), int(home_sc)
-    except Exception:
-        pass
-    return None, None
 
 # ──────────────────────────────────────────────────────────────
 # CBBD — PLAY-BY-PLAY
@@ -281,13 +260,16 @@ if st.session_state.selected_game_id:
         st.warning("No plays returned. The game may not be indexed yet or play-by-play may not be available for this game.")
         st.stop()
 
-    # Use authoritative score from /games endpoint
-    _final_away, _final_home = fetch_game_scores(game_id)
-    if _final_away is not None:
-        live_away, live_home = _final_away, _final_home
+    # Use the final score stored at game-select time (sourced directly from search results)
+    # This is more reliable than re-querying the API or reading from play-by-play
+    _stored_away = st.session_state.get("selected_away_pts")
+    _stored_home = st.session_state.get("selected_home_pts")
+    if _stored_away is not None and _stored_home is not None:
+        live_away, live_home = _stored_away, _stored_home
     else:
-        live_away = max((e["away_score"] for e in events), default=0)
-        live_home = max((e["home_score"] for e in events), default=0)
+        # Fallback: last play scores (may lag by 1 play but better than nothing)
+        live_away = events[-1]["away_score"] if events else 0
+        live_home = events[-1]["home_score"] if events else 0
 
     c1, c2, c3 = st.columns([1, 6, 1])
     with c1:
@@ -522,8 +504,10 @@ else:
                     st.session_state.selected_home_name = g_home
                     st.session_state.selected_away_abbr = g_away[:6].upper()
                     st.session_state.selected_home_abbr = g_home[:6].upper()
-                    st.session_state.selected_away_eid  = g_away_sid  # ESPN ID from team map
-                    st.session_state.selected_home_eid  = g_home_sid  # ESPN ID from team map
+                    st.session_state.selected_away_eid  = g_away_sid
+                    st.session_state.selected_home_eid  = g_home_sid
+                    st.session_state.selected_away_pts  = int(g_away_pts) if str(g_away_pts).isdigit() else None
+                    st.session_state.selected_home_pts  = int(g_home_pts) if str(g_home_pts).isdigit() else None
                     st.session_state.selected_year      = int(g.get("season") or search_year)
                     st.session_state.search_results     = []
                     st.session_state.search_done        = False
