@@ -97,8 +97,8 @@ def fmt_full_et(dt) -> str:
         return "N/A"
     return dt.strftime("%Y-%m-%d %H:%M:%S ET")
 
-def espn_logo(team_id) -> str:
-    return f"https://a.espncdn.com/i/teamlogos/ncaa/500/{team_id}.png"
+def team_logo(source_id) -> str:
+    return f"https://cdn.collegefootballdata.com/cbb-logos/128/{source_id}.png"
 
 def period_label(p: int) -> str:
     if p == 1: return "H1"
@@ -121,36 +121,22 @@ def _emoji(play_type: str, desc: str, is_scoring: bool) -> str:
 # ──────────────────────────────────────────────────────────────
 # CBBD — FETCH ALL TEAMS (D1 only) + ESPN ID map for logos
 # ──────────────────────────────────────────────────────────────
-def _get_espn_id(team: dict) -> str:
-    """Try all known field name variants for the ESPN numeric team ID."""
-    for field in ("sourceId", "source_id", "espnId", "espn_id", "espn", "externalId", "external_id"):
-        val = team.get(field)
-        if val:
-            return str(val)
-    return ""
-
-def _is_d1(team: dict) -> bool:
-    """Return True if D1. Falls back to True if no division field exists."""
-    for field in ("division", "classification", "level", "div"):
-        val = team.get(field)
-        if val is not None:
-            return str(val).lower() in ("d1", "di", "1", "division i", "fbs", "fcs", "d-i")
-    return True  # no division field found — include team
-
 @st.cache_data(ttl=86400, show_spinner=False)
 def fetch_teams_data() -> tuple:
-    """Returns (d1_team_names_sorted, school_to_espn_id_dict)."""
+    """
+    Returns (team_names_sorted, school_to_source_id_dict).
+    CBBD only tracks D1 teams so no division filtering needed.
+    sourceId on each team object is the ESPN/CDN numeric ID used in logo URLs.
+    """
     try:
         r = requests.get(f"{CBBD_BASE}/teams", headers=cbbd_headers(), timeout=10)
         r.raise_for_status()
         data = r.json()
         if isinstance(data, list) and data:
-            d1_teams = [t for t in data if t.get("school") and _is_d1(t)]
-            if not d1_teams:  # D1 filter matched nothing — fall back to all teams
-                d1_teams = [t for t in data if t.get("school")]
-            names    = sorted([t["school"] for t in d1_teams], key=str.lower)
-            espn_map = {t["school"]: _get_espn_id(t) for t in d1_teams if _get_espn_id(t)}
-            return names, espn_map
+            teams    = [t for t in data if t.get("school")]
+            names    = sorted([t["school"] for t in teams], key=str.lower)
+            logo_map = {t["school"]: str(t["sourceId"]) for t in teams if t.get("sourceId")}
+            return names, logo_map
     except Exception:
         pass
     return [], {}
@@ -159,9 +145,9 @@ def fetch_all_cbbd_teams() -> list:
     names, _ = fetch_teams_data()
     return names
 
-def fetch_espn_id_map() -> dict:
-    _, espn_map = fetch_teams_data()
-    return espn_map
+def fetch_logo_map() -> dict:
+    _, logo_map = fetch_teams_data()
+    return logo_map
 
 # ──────────────────────────────────────────────────────────────
 # CBBD — FETCH GAME SCORE (authoritative)
@@ -306,7 +292,7 @@ if st.session_state.selected_game_id:
     c1, c2, c3 = st.columns([1, 6, 1])
     with c1:
         if away_eid:
-            st.image(espn_logo(away_eid), width=60)
+            st.image(team_logo(away_eid), width=60)
     with c2:
         st.markdown(
             f"""<div style="display:flex;align-items:center;justify-content:center;
@@ -319,7 +305,7 @@ if st.session_state.selected_game_id:
         )
     with c3:
         if home_eid:
-            st.image(espn_logo(home_eid), width=60)
+            st.image(team_logo(home_eid), width=60)
 
     has_wc = sum(1 for e in events if e["action_dt"])
     total  = len(events)
@@ -452,23 +438,6 @@ else:
             help="Use the year the season ends — e.g. 2025 = 2024-25 season",
         )
 
-    # ── DEBUG: show raw fields from first team so we can verify field names ──
-    with st.expander("🔍 Debug: CBBD team fields (remove once logos working)", expanded=False):
-        try:
-            _r = requests.get(f"{CBBD_BASE}/teams", headers=cbbd_headers(), timeout=10)
-            _data = _r.json()
-            if isinstance(_data, list) and _data:
-                st.write("**First team raw object:**")
-                st.json(_data[0])
-                st.write(f"**Total teams returned:** {len(_data)}")
-                d1_count = sum(1 for t in _data if _is_d1(t))
-                st.write(f"**Teams passing D1 filter:** {d1_count}")
-                espn_sample = [(t.get("school",""), _get_espn_id(t)) for t in _data[:5]]
-                st.write("**ESPN ID samples (school, id):**", espn_sample)
-        except Exception as ex:
-            st.write(f"Debug error: {ex}")
-    # ── END DEBUG ──
-
     if st.button("🔎 Find Games", use_container_width=True):
         if not cbbd_key:
             st.error("No CBBD API key found. Add CBBD_API_KEY to your Streamlit secrets.")
@@ -493,7 +462,7 @@ else:
                     st.error(f"Search failed: {e}")
 
     if st.session_state.search_done and st.session_state.search_results:
-        espn_id_map = fetch_espn_id_map()
+        logo_map = fetch_logo_map()
         results = sorted(
             st.session_state.search_results,
             key=lambda x: x.get("startDate", x.get("start_date", "")),
@@ -516,8 +485,8 @@ else:
             g_id       = g.get("id")
 
             # Resolve ESPN IDs by team name for logo URLs
-            g_away_eid = espn_id_map.get(g_away, "")
-            g_home_eid = espn_id_map.get(g_home, "")
+            g_away_sid = logo_map.get(g_away, "")
+            g_home_sid = logo_map.get(g_home, "")
 
             g_stype = (g.get("seasonType") or g.get("season_type") or "regular").lower()
             if "post" in g_stype or "tournament" in g_stype:
@@ -529,8 +498,8 @@ else:
                 away_pts_str = str(g_away_pts) if g_away_pts != "" else ""
                 home_pts_str = str(g_home_pts) if g_home_pts != "" else ""
 
-                _a_logo  = f"<img src='{espn_logo(g_away_eid)}' style='width:22px;height:22px;object-fit:contain'/>" if g_away_eid else "<span style='width:22px;display:inline-block'></span>"
-                _h_logo  = f"<img src='{espn_logo(g_home_eid)}' style='width:22px;height:22px;object-fit:contain'/>" if g_home_eid else "<span style='width:22px;display:inline-block'></span>"
+                _a_logo  = f"<img src='{team_logo(g_away_sid)}' style='width:22px;height:22px;object-fit:contain'/>" if g_away_sid else "<span style='width:22px;display:inline-block'></span>"
+                _h_logo  = f"<img src='{team_logo(g_home_sid)}' style='width:22px;height:22px;object-fit:contain'/>" if g_home_sid else "<span style='width:22px;display:inline-block'></span>"
                 _a_score = f"<span style='margin-left:auto;font-size:15px;font-weight:700;color:#aaa'>{away_pts_str}</span>" if away_pts_str else ""
                 _h_score = f"<span style='margin-left:auto;font-size:15px;font-weight:700;color:#aaa'>{home_pts_str}</span>" if home_pts_str else ""
 
@@ -553,8 +522,8 @@ else:
                     st.session_state.selected_home_name = g_home
                     st.session_state.selected_away_abbr = g_away[:6].upper()
                     st.session_state.selected_home_abbr = g_home[:6].upper()
-                    st.session_state.selected_away_eid  = g_away_eid  # ESPN ID from team map
-                    st.session_state.selected_home_eid  = g_home_eid  # ESPN ID from team map
+                    st.session_state.selected_away_eid  = g_away_sid  # ESPN ID from team map
+                    st.session_state.selected_home_eid  = g_home_sid  # ESPN ID from team map
                     st.session_state.selected_year      = int(g.get("season") or search_year)
                     st.session_state.search_results     = []
                     st.session_state.search_done        = False
