@@ -27,19 +27,19 @@ ET        = ZoneInfo("America/New_York")
 CBBD_BASE = "https://api.collegebasketballdata.com"
 
 SCORING_EMOJI = {
-    "three-point": "🎯",
-    "two-point":   "🏀",
-    "free throw":  "🔴",
+    "three-point": "🔥",
+    "two-point":   "🟢",
+    "free throw":  "🎯",
     "dunk":        "💥",
-    "layup":       "🤸",
-    "tip-in":      "🏀",
+    "layup":       "🟢",
+    "tip-in":      "🟢",
 }
 PLAY_EMOJI = {
-    "turnover":  "🚨",
-    "steal":     "💨",
-    "block":     "🛡️",
+    "turnover":  "❌",
+    "steal":     "🏃",
+    "block":     "🚫",
     "foul":      "🟡",
-    "timeout":   "⏳",
+    "timeout":   "⏸️",
     "rebound":   "🔄",
     "assist":    "🤝",
     "sub":       "🔁",
