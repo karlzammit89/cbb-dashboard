@@ -101,8 +101,8 @@ def espn_logo(team_id) -> str:
     return f"https://a.espncdn.com/i/teamlogos/ncaa/500/{team_id}.png"
 
 def period_label(p: int) -> str:
-    if p == 1: return "1st Half"
-    if p == 2: return "2nd Half"
+    if p == 1: return "H1"
+    if p == 2: return "H2"
     return f"OT{p - 2}"
 
 def _emoji(play_type: str, desc: str, is_scoring: bool) -> str:
@@ -119,22 +119,41 @@ def _emoji(play_type: str, desc: str, is_scoring: bool) -> str:
     return "🏀"
 
 # ──────────────────────────────────────────────────────────────
-# CBBD — FETCH ALL TEAMS
+# CBBD — FETCH ALL TEAMS (D1 only) + ESPN ID map for logos
 # ──────────────────────────────────────────────────────────────
 @st.cache_data(ttl=86400, show_spinner=False)
-def fetch_all_cbbd_teams() -> list:
+def fetch_teams_data() -> tuple:
+    """Returns (d1_team_names_sorted, school_to_espn_id_dict)."""
     try:
         r = requests.get(f"{CBBD_BASE}/teams", headers=cbbd_headers(), timeout=10)
         r.raise_for_status()
         data = r.json()
         if isinstance(data, list):
-            return sorted(
-                [t.get("school", "") for t in data if t.get("school")],
-                key=str.lower,
-            )
+            d1_teams = [
+                t for t in data
+                if t.get("school") and (t.get("division") or "").lower() == "d1"
+            ]
+            names = sorted([t["school"] for t in d1_teams], key=str.lower)
+            # sourceId on each team is the ESPN team ID used for logo URLs
+            espn_map = {
+                t["school"]: str(t["sourceId"])
+                for t in d1_teams
+                if t.get("sourceId")
+            }
+            return names, espn_map
     except Exception:
         pass
-    return []
+    return [], {}
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def fetch_all_cbbd_teams() -> list:
+    names, _ = fetch_teams_data()
+    return names
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def fetch_espn_id_map() -> dict:
+    _, espn_map = fetch_teams_data()
+    return espn_map
 
 # ──────────────────────────────────────────────────────────────
 # CBBD — FETCH GAME SCORE (authoritative)
@@ -203,7 +222,8 @@ def get_events(game_id: int) -> list:
         home_sc = int(p.get("homeScore") or p.get("home_score") or 0)
         away_sc = int(p.get("awayScore") or p.get("away_score") or 0)
 
-        is_scoring = bool(p.get("scoring", False))
+        # CBBD uses "scoring_play" (not "scoring") per the API spec
+        is_scoring = bool(p.get("scoring_play") or p.get("scoringPlay") or p.get("scoring") or False)
         action_dt  = to_et(p.get("wallclock") or p.get("wallClock") or "")
 
         team = p.get("team") or p.get("offense") or ""
@@ -312,7 +332,7 @@ if st.session_state.selected_game_id:
         {e["period_label"] for e in events},
         key=lambda x: (
             x.startswith("OT"),
-            0 if x in ("1st Half", "2nd Half") else int(x[2:]) + 100,
+            0 if x in ("H1", "H2") else int(x[2:]) + 100,
         ),
     )
     all_teams = sorted({e["team"] for e in events if e["team"]})
@@ -377,7 +397,10 @@ if st.session_state.selected_game_id:
         if e["play_type"]: meta_parts.append(f"**{e['play_type']}**")
         if e["team"]:      meta_parts.append(f"{e['team']}")
         if meta_parts:     st.caption("  ·  ".join(meta_parts))
-        st.markdown(f"📊 **Score:** {e['score_str']}" + (" &nbsp; 🔥 *Scoring Play!*" if e["is_scoring"] else ""))
+        score_line = f"📊 **Score:** {e['score_str']}"
+        if e["is_scoring"]:
+            score_line += " &nbsp; 🔥 *Scoring Play!*"
+        st.markdown(score_line)
         st.markdown(f"📋 **Play:** {e['desc']}")
         st.markdown(f"🕐 **Time (ET):** `{e['action_dt_str']}`")
         st.divider()
@@ -445,6 +468,7 @@ else:
                     st.error(f"Search failed: {e}")
 
     if st.session_state.search_done and st.session_state.search_results:
+        espn_id_map = fetch_espn_id_map()
         results = sorted(
             st.session_state.search_results,
             key=lambda x: x.get("startDate", x.get("start_date", "")),
@@ -464,9 +488,11 @@ else:
             g_home     = g.get("homeTeam")   or g.get("home_team")   or "?"
             g_away_pts = g.get("awayPoints") or g.get("away_points") or ""
             g_home_pts = g.get("homePoints") or g.get("home_points") or ""
-            g_away_id  = g.get("awayId")     or g.get("away_id")     or ""
-            g_home_id  = g.get("homeId")     or g.get("home_id")     or ""
             g_id       = g.get("id")
+
+            # Resolve ESPN IDs by team name for logo URLs
+            g_away_eid = espn_id_map.get(g_away, "")
+            g_home_eid = espn_id_map.get(g_home, "")
 
             g_stype = (g.get("seasonType") or g.get("season_type") or "regular").lower()
             if "post" in g_stype or "tournament" in g_stype:
@@ -478,8 +504,8 @@ else:
                 away_pts_str = str(g_away_pts) if g_away_pts != "" else ""
                 home_pts_str = str(g_home_pts) if g_home_pts != "" else ""
 
-                _a_logo  = f"<img src='{espn_logo(g_away_id)}' style='width:22px;height:22px;object-fit:contain'/>" if g_away_id else "<span style='width:22px;display:inline-block'></span>"
-                _h_logo  = f"<img src='{espn_logo(g_home_id)}' style='width:22px;height:22px;object-fit:contain'/>" if g_home_id else "<span style='width:22px;display:inline-block'></span>"
+                _a_logo  = f"<img src='{espn_logo(g_away_eid)}' style='width:22px;height:22px;object-fit:contain'/>" if g_away_eid else "<span style='width:22px;display:inline-block'></span>"
+                _h_logo  = f"<img src='{espn_logo(g_home_eid)}' style='width:22px;height:22px;object-fit:contain'/>" if g_home_eid else "<span style='width:22px;display:inline-block'></span>"
                 _a_score = f"<span style='margin-left:auto;font-size:15px;font-weight:700;color:#aaa'>{away_pts_str}</span>" if away_pts_str else ""
                 _h_score = f"<span style='margin-left:auto;font-size:15px;font-weight:700;color:#aaa'>{home_pts_str}</span>" if home_pts_str else ""
 
@@ -502,8 +528,8 @@ else:
                     st.session_state.selected_home_name = g_home
                     st.session_state.selected_away_abbr = g_away[:6].upper()
                     st.session_state.selected_home_abbr = g_home[:6].upper()
-                    st.session_state.selected_away_eid  = g_away_id
-                    st.session_state.selected_home_eid  = g_home_id
+                    st.session_state.selected_away_eid  = g_away_eid  # ESPN ID from team map
+                    st.session_state.selected_home_eid  = g_home_eid  # ESPN ID from team map
                     st.session_state.selected_year      = int(g.get("season") or search_year)
                     st.session_state.search_results     = []
                     st.session_state.search_done        = False
