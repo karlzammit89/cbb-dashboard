@@ -121,6 +121,22 @@ def _emoji(play_type: str, desc: str, is_scoring: bool) -> str:
 # ──────────────────────────────────────────────────────────────
 # CBBD — FETCH ALL TEAMS (D1 only) + ESPN ID map for logos
 # ──────────────────────────────────────────────────────────────
+def _get_espn_id(team: dict) -> str:
+    """Try all known field name variants for the ESPN numeric team ID."""
+    for field in ("sourceId", "source_id", "espnId", "espn_id", "espn", "externalId", "external_id"):
+        val = team.get(field)
+        if val:
+            return str(val)
+    return ""
+
+def _is_d1(team: dict) -> bool:
+    """Return True if D1. Falls back to True if no division field exists."""
+    for field in ("division", "classification", "level", "div"):
+        val = team.get(field)
+        if val is not None:
+            return str(val).lower() in ("d1", "di", "1", "division i", "fbs", "fcs", "d-i")
+    return True  # no division field found — include team
+
 @st.cache_data(ttl=86400, show_spinner=False)
 def fetch_teams_data() -> tuple:
     """Returns (d1_team_names_sorted, school_to_espn_id_dict)."""
@@ -128,29 +144,21 @@ def fetch_teams_data() -> tuple:
         r = requests.get(f"{CBBD_BASE}/teams", headers=cbbd_headers(), timeout=10)
         r.raise_for_status()
         data = r.json()
-        if isinstance(data, list):
-            d1_teams = [
-                t for t in data
-                if t.get("school") and (t.get("division") or "").lower() == "d1"
-            ]
-            names = sorted([t["school"] for t in d1_teams], key=str.lower)
-            # sourceId on each team is the ESPN team ID used for logo URLs
-            espn_map = {
-                t["school"]: str(t["sourceId"])
-                for t in d1_teams
-                if t.get("sourceId")
-            }
+        if isinstance(data, list) and data:
+            d1_teams = [t for t in data if t.get("school") and _is_d1(t)]
+            if not d1_teams:  # D1 filter matched nothing — fall back to all teams
+                d1_teams = [t for t in data if t.get("school")]
+            names    = sorted([t["school"] for t in d1_teams], key=str.lower)
+            espn_map = {t["school"]: _get_espn_id(t) for t in d1_teams if _get_espn_id(t)}
             return names, espn_map
     except Exception:
         pass
     return [], {}
 
-@st.cache_data(ttl=86400, show_spinner=False)
 def fetch_all_cbbd_teams() -> list:
     names, _ = fetch_teams_data()
     return names
 
-@st.cache_data(ttl=86400, show_spinner=False)
 def fetch_espn_id_map() -> dict:
     _, espn_map = fetch_teams_data()
     return espn_map
@@ -443,6 +451,23 @@ else:
             label_visibility="collapsed",
             help="Use the year the season ends — e.g. 2025 = 2024-25 season",
         )
+
+    # ── DEBUG: show raw fields from first team so we can verify field names ──
+    with st.expander("🔍 Debug: CBBD team fields (remove once logos working)", expanded=False):
+        try:
+            _r = requests.get(f"{CBBD_BASE}/teams", headers=cbbd_headers(), timeout=10)
+            _data = _r.json()
+            if isinstance(_data, list) and _data:
+                st.write("**First team raw object:**")
+                st.json(_data[0])
+                st.write(f"**Total teams returned:** {len(_data)}")
+                d1_count = sum(1 for t in _data if _is_d1(t))
+                st.write(f"**Teams passing D1 filter:** {d1_count}")
+                espn_sample = [(t.get("school",""), _get_espn_id(t)) for t in _data[:5]]
+                st.write("**ESPN ID samples (school, id):**", espn_sample)
+        except Exception as ex:
+            st.write(f"Debug error: {ex}")
+    # ── END DEBUG ──
 
     if st.button("🔎 Find Games", use_container_width=True):
         if not cbbd_key:
