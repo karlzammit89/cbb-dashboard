@@ -389,9 +389,7 @@ else:
 
     all_teams = fetch_all_cbbd_teams()
 
-    # Basketball season: season "2025" = 2024-25. If past June, use current year; else previous year.
-    _today = datetime.today()
-    default_season = _today.year if _today.month > 6 else _today.year - 1
+    default_season = datetime.today().year
 
     col_a, col_b = st.columns([3, 1])
     with col_a:
