@@ -251,7 +251,7 @@ if st.session_state.selected_game_id:
     _team = st.session_state.get("last_search_team")
     _year = st.session_state.get("last_search_year")
     if _team:
-        col_back1, col_back2, _ = st.columns([1, 2, 5], gap="small")
+        col_back1, col_back2, _ = st.columns([1, 2, 2], gap="small")
     else:
         col_back1, _ = st.columns([1, 11], gap="small")
         col_back2 = None
