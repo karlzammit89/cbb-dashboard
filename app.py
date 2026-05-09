@@ -76,6 +76,7 @@ _defaults = {
     "search_results":     [],
     "search_done":        False,
     "last_search_year":   None,
+    "last_search_team":   None,
 }
 for k, v in _defaults.items():
     if k not in st.session_state:
@@ -247,12 +248,27 @@ if st.session_state.selected_game_id:
     away_eid  = st.session_state.selected_away_eid
     home_eid  = st.session_state.selected_home_eid
 
-    if st.button("⬅ Back"):
-        for k in ("cached_events", "cached_game_id", "filtered_events"):
-            st.session_state[k] = None
-        st.session_state.filters_applied  = False
-        st.session_state.selected_game_id = None
-        st.rerun()
+    col_back1, col_back2, _ = st.columns([1, 2, 6])
+    with col_back1:
+        if st.button("⬅ Back"):
+            for k in ("cached_events", "cached_game_id", "filtered_events"):
+                st.session_state[k] = None
+            st.session_state.filters_applied  = False
+            st.session_state.selected_game_id = None
+            # Clear search so Back goes to blank home screen
+            st.session_state.search_results   = []
+            st.session_state.search_done      = False
+            st.rerun()
+    with col_back2:
+        _team = st.session_state.get("last_search_team")
+        _year = st.session_state.get("last_search_year")
+        if _team and st.button(f"📋 Back to {_team} {_year}"):
+            for k in ("cached_events", "cached_game_id", "filtered_events"):
+                st.session_state[k] = None
+            st.session_state.filters_applied  = False
+            st.session_state.selected_game_id = None
+            # search_results and search_done already preserved — schedule will reload
+            st.rerun()
 
     with st.spinner("Loading play-by-play…"):
         events = get_events(game_id)
@@ -425,6 +441,7 @@ else:
             st.warning("Select a team first.")
         else:
             st.session_state.last_search_year = int(search_year)
+            st.session_state.last_search_team = search_team.strip()
             with st.spinner(f"Searching CBBD for {search_team}…"):
                 try:
                     r = requests.get(
@@ -508,6 +525,5 @@ else:
                     st.session_state.selected_away_pts  = int(g_away_pts) if str(g_away_pts).isdigit() else None
                     st.session_state.selected_home_pts  = int(g_home_pts) if str(g_home_pts).isdigit() else None
                     st.session_state.selected_year      = int(g.get("season") or search_year)
-                    st.session_state.search_results     = []
-                    st.session_state.search_done        = False
+                    # Keep search_results and search_done so Back to team schedule restores the list
                     st.rerun()
