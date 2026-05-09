@@ -75,6 +75,7 @@ _defaults = {
     "filters_applied":    False,
     "search_results":     [],
     "search_done":        False,
+    "last_search_year":   None,
 }
 for k, v in _defaults.items():
     if k not in st.session_state:
@@ -389,7 +390,7 @@ else:
 
     all_teams = fetch_all_cbbd_teams()
 
-    default_season = datetime.today().year
+    default_season = st.session_state.last_search_year or datetime.today().year
 
     col_a, col_b = st.columns([3, 1])
     with col_a:
@@ -423,6 +424,7 @@ else:
         elif not search_team.strip():
             st.warning("Select a team first.")
         else:
+            st.session_state.last_search_year = int(search_year)
             with st.spinner(f"Searching CBBD for {search_team}…"):
                 try:
                     r = requests.get(
