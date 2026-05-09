@@ -248,27 +248,30 @@ if st.session_state.selected_game_id:
     away_eid  = st.session_state.selected_away_eid
     home_eid  = st.session_state.selected_home_eid
 
-    col_back1, col_back2, _ = st.columns([1, 2, 6])
+    _team = st.session_state.get("last_search_team")
+    _year = st.session_state.get("last_search_year")
+    if _team:
+        col_back1, col_back2, _ = st.columns([1, 2, 6])
+    else:
+        col_back1, _ = st.columns([1, 8])
+        col_back2 = None
     with col_back1:
         if st.button("⬅ Back"):
             for k in ("cached_events", "cached_game_id", "filtered_events"):
                 st.session_state[k] = None
             st.session_state.filters_applied  = False
             st.session_state.selected_game_id = None
-            # Clear search so Back goes to blank home screen
             st.session_state.search_results   = []
             st.session_state.search_done      = False
             st.rerun()
-    with col_back2:
-        _team = st.session_state.get("last_search_team")
-        _year = st.session_state.get("last_search_year")
-        if _team and st.button(f"📋 Back to {_team} {_year}"):
-            for k in ("cached_events", "cached_game_id", "filtered_events"):
-                st.session_state[k] = None
-            st.session_state.filters_applied  = False
-            st.session_state.selected_game_id = None
-            # search_results and search_done already preserved — schedule will reload
-            st.rerun()
+    if col_back2 and _team:
+        with col_back2:
+            if st.button(f"⬅ Back to {_team} {_year}"):
+                for k in ("cached_events", "cached_game_id", "filtered_events"):
+                    st.session_state[k] = None
+                st.session_state.filters_applied  = False
+                st.session_state.selected_game_id = None
+                st.rerun()
 
     with st.spinner("Loading play-by-play…"):
         events = get_events(game_id)
