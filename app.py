@@ -257,7 +257,7 @@ if st.session_state.selected_game_id:
         col_back1, col_refresh, _ = st.columns([1, 1, 7], gap="small")
         col_back2 = None
     with col_back1:
-        if st.button("⬅ Back"):
+        if st.button("⬅ Back", use_container_width=True):
             for k in ("cached_events", "cached_game_id", "filtered_events"):
                 st.session_state[k] = None
             st.session_state.filters_applied  = False
@@ -267,14 +267,14 @@ if st.session_state.selected_game_id:
             st.rerun()
     if col_back2 and _team:
         with col_back2:
-            if st.button(f"⬅ Back to {_team} {_year}"):
+            if st.button(f"⬅ Back to {_team} {_year}", use_container_width=True):
                 for k in ("cached_events", "cached_game_id", "filtered_events"):
                     st.session_state[k] = None
                 st.session_state.filters_applied  = False
                 st.session_state.selected_game_id = None
                 st.rerun()
     with col_refresh:
-        if st.button("🔄 Refresh"):
+        if st.button("🔄 Refresh", use_container_width=True):
             st.session_state.cached_events  = None
             st.session_state.cached_game_id = None
             st.session_state.last_refresh   = datetime.now(ET)
