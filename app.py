@@ -251,11 +251,16 @@ if st.session_state.selected_game_id:
 
     _team = st.session_state.get("last_search_team")
     _year = st.session_state.get("last_search_year")
+
+    # Define layout based on whether the specific team-back button is needed
     if _team:
-        col_back1, col_back2, col_refresh, _ = st.columns([1, 2, 1, 4], gap="small")
+        # [Back, Back to Team, Refresh, Badge, Spacer]
+        col_back1, col_back2, col_refresh, col_badge, _ = st.columns([1, 2, 1, 1.5, 2.5], gap="small")
     else:
-        col_back1, col_refresh, _ = st.columns([1, 1, 7], gap="small")
+        # [Back, Refresh, Badge, Spacer]
+        col_back1, col_refresh, col_badge, _ = st.columns([1, 1, 1.5, 5.5], gap="small")
         col_back2 = None
+
     with col_back1:
         if st.button("⬅ Back", use_container_width=True):
             for k in ("cached_events", "cached_game_id", "filtered_events"):
@@ -265,6 +270,7 @@ if st.session_state.selected_game_id:
             st.session_state.search_results   = []
             st.session_state.search_done      = False
             st.rerun()
+
     if col_back2 and _team:
         with col_back2:
             if st.button(f"⬅ Back to {_team} {_year}", use_container_width=True):
@@ -273,6 +279,7 @@ if st.session_state.selected_game_id:
                 st.session_state.filters_applied  = False
                 st.session_state.selected_game_id = None
                 st.rerun()
+
     with col_refresh:
         if st.button("🔄 Refresh", use_container_width=True):
             st.session_state.cached_events  = None
@@ -280,15 +287,10 @@ if st.session_state.selected_game_id:
             st.session_state.last_refresh   = datetime.now(ET)
             st.cache_data.clear()
             st.rerun()
-    if st.session_state.last_refresh:
-        st.markdown(
-            f"""<div style="background-color:#2e7d32;color:white;padding:4px 12px;
-                border-radius:4px;font-size:16px;font-weight:bold;width:fit-content;
-                margin-top:-5px;margin-bottom:20px;">
-                Last refresh {st.session_state.last_refresh.strftime('%H:%M:%S ET')}
-            </div>""",
-            unsafe_allow_html=True,
-        )
+
+    # Place the badge in the newly defined col_badge
+    with col_badge:
+        if st.session_state.last_refresh
 
     with st.spinner("Loading play-by-play…"):
         events = get_events(game_id)
