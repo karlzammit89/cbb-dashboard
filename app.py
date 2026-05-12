@@ -254,7 +254,7 @@ if st.session_state.selected_game_id:
     if _team:
         col_back1, col_back2, col_refresh, _ = st.columns([1, 2, 1, 4], gap="small")
     else:
-        col_back1, col_refresh, _ = st.columns([1, 1, 7])
+        col_back1, col_refresh, _ = st.columns([1, 1, 7], gap="small")
         col_back2 = None
     with col_back1:
         if st.button("⬅ Back"):
