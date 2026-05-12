@@ -290,7 +290,26 @@ if st.session_state.selected_game_id:
 
     # Place the badge in the newly defined col_badge
     with col_badge:
-        if st.session_state.last_refresh
+        if st.session_state.last_refresh:
+            st.markdown(
+                f"""
+                <div style="
+                    background-color: #2e7d32; 
+                    color: white; 
+                    padding: 8px 12px; 
+                    border-radius: 4px; 
+                    font-size: 14px; 
+                    font-weight: bold;
+                    width: fit-content;
+                    margin: 0; 
+                    display: block;
+                    white-space: nowrap;
+                ">
+                    Last refresh {st.session_state.last_refresh.strftime('%H:%M:%S ET')}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     with st.spinner("Loading play-by-play…"):
         events = get_events(game_id)
