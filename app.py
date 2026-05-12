@@ -278,7 +278,7 @@ if st.session_state.selected_game_id:
             st.session_state.cached_events  = None
             st.session_state.cached_game_id = None
             st.session_state.last_refresh   = datetime.now(ET)
-            cbbd_fetch_plays.clear()
+            st.cache_data.clear()
             st.rerun()
     if st.session_state.last_refresh:
         st.markdown(
