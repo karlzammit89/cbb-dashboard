@@ -73,6 +73,7 @@ _defaults = {
     "cached_game_id":     None,
     "filtered_events":    None,
     "filters_applied":    False,
+    "last_refresh":       None,
     "search_results":     [],
     "search_done":        False,
     "last_search_year":   None,
@@ -251,9 +252,9 @@ if st.session_state.selected_game_id:
     _team = st.session_state.get("last_search_team")
     _year = st.session_state.get("last_search_year")
     if _team:
-        col_back1, col_back2, _ = st.columns([1, 2, 6])
+        col_back1, col_back2, col_refresh, _ = st.columns([1, 2, 1, 4])
     else:
-        col_back1, _ = st.columns([1, 8])
+        col_back1, col_refresh, _ = st.columns([1, 1, 7])
         col_back2 = None
     with col_back1:
         if st.button("⬅ Back"):
@@ -272,6 +273,22 @@ if st.session_state.selected_game_id:
                 st.session_state.filters_applied  = False
                 st.session_state.selected_game_id = None
                 st.rerun()
+    with col_refresh:
+        if st.button("🔄 Refresh"):
+            st.session_state.cached_events  = None
+            st.session_state.cached_game_id = None
+            st.session_state.last_refresh   = datetime.now(ET)
+            cbbd_fetch_plays.clear()
+            st.rerun()
+    if st.session_state.last_refresh:
+        st.markdown(
+            f"""<div style="background-color:#2e7d32;color:white;padding:4px 12px;
+                border-radius:4px;font-size:16px;font-weight:bold;width:fit-content;
+                margin-top:-5px;margin-bottom:20px;">
+                Last refresh {st.session_state.last_refresh.strftime('%H:%M:%S ET')}
+            </div>""",
+            unsafe_allow_html=True,
+        )
 
     with st.spinner("Loading play-by-play…"):
         events = get_events(game_id)
