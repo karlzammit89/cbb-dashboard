@@ -243,42 +243,27 @@ def get_events(game_id: int) -> list:
 # ══════════════════════════════════════════════════════════════
 if st.session_state.selected_game_id:
 
+    # ADD THIS SECTION: Safety check for first load
+    if st.session_state.get("last_refresh") is None:
+        st.session_state.last_refresh = datetime.now(ET)
+    
     game_id   = st.session_state.selected_game_id
     away_name = st.session_state.selected_away_name
     home_name = st.session_state.selected_home_name
     away_eid  = st.session_state.selected_away_eid
     home_eid  = st.session_state.selected_home_eid
 
+    # Updated Layout Setup
     _team = st.session_state.get("last_search_team")
-    _year = st.session_state.get("last_search_year")
-
-    # Define layout based on whether the specific team-back button is needed
     if _team:
         # [Back, Back to Team, Refresh, Badge, Spacer]
-        col_back1, col_back2, col_refresh, col_badge, _ = st.columns([1, 2, 1, 1.5, 2.5], gap="small")
+        col_back1, col_back2, col_refresh, col_badge, _ = st.columns([1, 2, 1, 1.3, 2.7], gap="small")
     else:
         # [Back, Refresh, Badge, Spacer]
-        col_back1, col_refresh, col_badge, _ = st.columns([1, 1, 1.5, 5.5], gap="small")
+        col_back1, col_refresh, col_badge, _ = st.columns([1, 1, 1.3, 5.7], gap="small")
         col_back2 = None
 
-    with col_back1:
-        if st.button("⬅ Back", use_container_width=True):
-            for k in ("cached_events", "cached_game_id", "filtered_events"):
-                st.session_state[k] = None
-            st.session_state.filters_applied  = False
-            st.session_state.selected_game_id = None
-            st.session_state.search_results   = []
-            st.session_state.search_done      = False
-            st.rerun()
-
-    if col_back2 and _team:
-        with col_back2:
-            if st.button(f"⬅ Back to {_team} {_year}", use_container_width=True):
-                for k in ("cached_events", "cached_game_id", "filtered_events"):
-                    st.session_state[k] = None
-                st.session_state.filters_applied  = False
-                st.session_state.selected_game_id = None
-                st.rerun()
+    # ... (Keep your Back button logic here) ...
 
     with col_refresh:
         if st.button("🔄 Refresh", use_container_width=True):
@@ -288,27 +273,18 @@ if st.session_state.selected_game_id:
             st.cache_data.clear()
             st.rerun()
 
-    # Place the badge in the newly defined col_badge
+    # REPLACEMENT BADGE BLOCK: Use col_badge and updated styling
     with col_badge:
         if st.session_state.last_refresh:
             st.markdown(
                 f"""
-                <div style="
-                    background-color: #2e7d32; 
-                    color: white; 
-                    padding: 8px 12px; 
-                    border-radius: 4px; 
-                    font-size: 14px; 
-                    font-weight: bold;
-                    width: fit-content;
-                    margin: 0; 
-                    display: block;
-                    white-space: nowrap;
-                ">
+                <div style="background-color:#2e7d32;color:white;padding:8px 12px;
+                    border-radius:4px;font-size:14px;font-weight:bold;width:fit-content;
+                    margin:0;display:block;white-space:nowrap;">
                     Last refresh {st.session_state.last_refresh.strftime('%H:%M:%S ET')}
                 </div>
                 """,
-                unsafe_allow_html=True,
+                unsafe_allow_html=True
             )
 
     with st.spinner("Loading play-by-play…"):
@@ -566,5 +542,8 @@ else:
                     st.session_state.selected_away_pts  = int(g_away_pts) if str(g_away_pts).isdigit() else None
                     st.session_state.selected_home_pts  = int(g_home_pts) if str(g_home_pts).isdigit() else None
                     st.session_state.selected_year      = int(g.get("season") or search_year)
-                    # Keep search_results and search_done so Back to team schedule restores the list
+                    
+                    # ADD THIS LINE: Sets the timestamp immediately on opening
+                    st.session_state.last_refresh = datetime.now(ET) 
+                    
                     st.rerun()
