@@ -537,6 +537,14 @@ else:
                 week_label = "Regular Season"
 
             with st.container(border=True):
+                # 1. Logic check: If points are None or empty string, the game hasn't started/indexed data
+                # CBB API usually returns None for unplayed games
+                has_started = g.get("awayPoints") is not None or g.get("away_points") is not None
+                
+                # 2. Set dynamic labels for the button
+                btn_label = "▶ Open" if has_started else "⏳ Not Started"
+                btn_help = "Play-by-play data is available once the game tips off." if not has_started else "View game events"
+
                 away_pts_str = str(g_away_pts) if g_away_pts != "" else ""
                 home_pts_str = str(g_home_pts) if g_home_pts != "" else ""
 
@@ -555,7 +563,14 @@ else:
                 )
                 st.markdown(card_html, unsafe_allow_html=True)
 
-                if st.button("▶ Open", key=f"pick_{g_id}", use_container_width=True):
+                # 3. Apply the disabled state and help tooltip
+                if st.button(
+                    btn_label, 
+                    key=f"pick_{g_id}", 
+                    use_container_width=True,
+                    disabled=not has_started,
+                    help=btn_help
+                ):
                     st.session_state.last_refresh = datetime.now(ET)
                     for k in ("cached_events", "cached_game_id", "filtered_events"):
                         st.session_state[k] = None
@@ -564,5 +579,4 @@ else:
                     st.session_state.selected_away_name = g_away
                     st.session_state.selected_home_name = g_home
                     st.session_state.selected_away_abbr = g_away[:6].upper()
-                    # Keep search_results and search_done so Back to team schedule restores the list
                     st.rerun()
