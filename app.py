@@ -269,6 +269,7 @@ if st.session_state.selected_game_id:
             st.session_state.selected_game_id = None
             st.session_state.search_results   = []
             st.session_state.search_done      = False
+            st.session_state.last_refresh     = None 
             st.rerun()
 
     if col_back2 and _team:
@@ -278,6 +279,8 @@ if st.session_state.selected_game_id:
                     st.session_state[k] = None
                 st.session_state.filters_applied  = False
                 st.session_state.selected_game_id = None
+                # --- ADD THIS LINE ---
+                st.session_state.last_refresh     = None 
                 st.rerun()
 
     with col_refresh:
@@ -553,6 +556,7 @@ else:
                 st.markdown(card_html, unsafe_allow_html=True)
 
                 if st.button("▶ Open", key=f"pick_{g_id}", use_container_width=True):
+                    st.session_state.last_refresh = datetime.now(ET)
                     for k in ("cached_events", "cached_game_id", "filtered_events"):
                         st.session_state[k] = None
                     st.session_state.filters_applied    = False
@@ -560,11 +564,5 @@ else:
                     st.session_state.selected_away_name = g_away
                     st.session_state.selected_home_name = g_home
                     st.session_state.selected_away_abbr = g_away[:6].upper()
-                    st.session_state.selected_home_abbr = g_home[:6].upper()
-                    st.session_state.selected_away_eid  = g_away_sid
-                    st.session_state.selected_home_eid  = g_home_sid
-                    st.session_state.selected_away_pts  = int(g_away_pts) if str(g_away_pts).isdigit() else None
-                    st.session_state.selected_home_pts  = int(g_home_pts) if str(g_home_pts).isdigit() else None
-                    st.session_state.selected_year      = int(g.get("season") or search_year)
                     # Keep search_results and search_done so Back to team schedule restores the list
                     st.rerun()
