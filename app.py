@@ -543,7 +543,7 @@ else:
                 
                 # 2. Set dynamic labels for the button
                 btn_label = "▶ Open" if has_started else "⏳ Not Started"
-                btn_help = "Play-by-play data is available once the game tips off." if not has_started else "View game events"
+                btn_help = "Data will be available once the game starts." if not has_started else "View game events"
 
                 away_pts_str = str(g_away_pts) if g_away_pts != "" else ""
                 home_pts_str = str(g_home_pts) if g_home_pts != "" else ""
