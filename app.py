@@ -373,10 +373,15 @@ if st.session_state.selected_game_id:
     all_periods = sorted({e["period_label"] for e in events}, key=_period_sort_key)
     all_teams = sorted({e["team"] for e in events if e["team"]})
 
-    USE_Q  = st.checkbox("🏀 Filter by Half / OT")
-    USE_T  = st.checkbox("🕐 Filter by Actual Time (ET)")
-    USE_TM = st.checkbox("🏟️ Filter by Team")
-    USE_SC = st.checkbox("🔥 Scoring Plays Only")
+    if "filter_version" not in st.session_state:
+        st.session_state.filter_version = 0
+
+    # Append the version to the keys so they reset when the version changes
+    v = st.session_state.filter_version
+    USE_Q  = st.checkbox("🏀 Filter by Half / OT", key=f"q_{v}")
+    USE_T  = st.checkbox("🕐 Filter by Actual Time (ET)", key=f"t_{v}")
+    USE_TM = st.checkbox("🏟️ Filter by Team", key=f"tm_{v}")
+    USE_SC = st.checkbox("🔥 Scoring Plays Only", key=f"sc_{v}")
 
     sel_halves = sel_teams = []
     START_DT = END_DT = None
@@ -399,16 +404,31 @@ if st.session_state.selected_game_id:
     if USE_TM:
         sel_teams = st.multiselect("Team", options=all_teams)
 
-    if st.button("🚀 Apply Filters"):
-        def passes(e):
-            if USE_Q  and sel_halves and e["period_label"] not in sel_halves: return False
-            if USE_T  and START_DT and END_DT:
-                if not e["action_dt"] or not (START_DT <= e["action_dt"] <= END_DT): return False
-            if USE_SC and not e["is_scoring"]:                                        return False
-            if USE_TM and sel_teams and e["team"] not in sel_teams:                   return False
-            return True
-        st.session_state.filtered_events = [e for e in events if passes(e)]
-        st.session_state.filters_applied = True
+    f_btn_1, f_btn_2, f_btn_spacer = st.columns([1.5, 1.5, 5])
+
+    with f_btn_1:
+        if st.button("🚀 Apply Filters", use_container_width=True):
+            def passes(e):
+                if USE_Q  and sel_halves and e["period_label"] not in sel_halves: return False
+                if USE_T  and START_DT and END_DT:
+                    if not e["action_dt"] or not (START_DT <= e["action_dt"] <= END_DT): return False
+                if USE_SC and not e["is_scoring"]:                                        return False
+                if USE_TM and sel_teams and e["team"] not in sel_teams:                   return False
+                return True
+            st.session_state.filtered_events = [e for e in events if passes(e)]
+            st.session_state.filters_applied = True
+            st.rerun()
+
+    with f_btn_2:
+        if st.button("🗑️ Remove Filters", use_container_width=True):
+            # 1. Clear the filter data
+            st.session_state.filtered_events = None
+            st.session_state.filters_applied = False
+            
+            # 2. Increment version to force-reset the checkboxes
+            st.session_state.filter_version += 1
+            
+            st.rerun()
 
     fa       = st.session_state.filters_applied
     filtered = st.session_state.filtered_events if fa else events
