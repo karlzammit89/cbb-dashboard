@@ -332,7 +332,7 @@ if st.session_state.selected_game_id:
         live_away = events[-1]["away_score"] if events else 0
         live_home = events[-1]["home_score"] if events else 0
 
-    c1, c2, c3 = st.columns([1, 6, 1])
+    c1, c2, c3 = st.columns([1, 6, 1], gap="small")
     with c1:
         if away_eid:
             st.image(team_logo(away_eid), width=60)
@@ -598,5 +598,12 @@ else:
                     st.session_state.selected_game_id   = g_id
                     st.session_state.selected_away_name = g_away
                     st.session_state.selected_home_name = g_home
+
                     st.session_state.selected_away_abbr = g_away[:6].upper()
+                    st.session_state.selected_home_abbr = g_home[:6].upper()
+
+                    # ADD THESE
+                    st.session_state.selected_away_eid = g_away_sid
+                    st.session_state.selected_home_eid = g_home_sid
+
                     st.rerun()
