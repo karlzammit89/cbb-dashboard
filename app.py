@@ -249,70 +249,52 @@ if st.session_state.selected_game_id:
     away_eid  = st.session_state.selected_away_eid
     home_eid  = st.session_state.selected_home_eid
 
-    _team = st.session_state.get("last_search_team")
-    _year = st.session_state.get("last_search_year")
+    # ... [Keep your existing Back/Refresh button logic here] ...
 
-    # Define layout based on whether the specific team-back button is needed
-    if _team:
-        # [Back, Back to Team, Refresh, Badge, Spacer]
-        col_back1, col_back2, col_refresh, col_badge, _ = st.columns([1, 2, 1, 1.5, 2.5], gap="small")
-    else:
-        # [Back, Refresh, Badge, Spacer]
-        col_back1, col_refresh, col_badge, _ = st.columns([1, 1, 1.5, 5.5], gap="small")
-        col_back2 = None
+    with st.spinner("Loading play-by-play…"):
+        events = get_events(game_id)
 
-    with col_back1:
-        if st.button("⬅ Back", use_container_width=True):
-            for k in ("cached_events", "cached_game_id", "filtered_events"):
-                st.session_state[k] = None
-            st.session_state.filters_applied  = False
-            st.session_state.selected_game_id = None
-            st.session_state.search_results   = []
-            st.session_state.search_done      = False
-            st.session_state.last_refresh     = None 
-            st.rerun()
+    if not events:
+        st.warning("No plays returned.")
+        st.stop()
 
-    if col_back2 and _team:
-        with col_back2:
-            if st.button(f"⬅ Back to {_team} {_year}", use_container_width=True):
-                for k in ("cached_events", "cached_game_id", "filtered_events"):
-                    st.session_state[k] = None
-                st.session_state.filters_applied  = False
-                st.session_state.selected_game_id = None
-                # --- ADD THIS LINE ---
-                st.session_state.last_refresh     = None 
-                st.rerun()
+    # Determine live scores
+    _stored_away = st.session_state.get("selected_away_pts")
+    _stored_home = st.session_state.get("selected_home_pts")
+    live_away = _stored_away if _stored_away is not None else (events[-1]["away_score"] if events else 0)
+    live_home = _stored_home if _stored_home is not None else (events[-1]["home_score"] if events else 0)
 
-    with col_refresh:
-        if st.button("🔄 Refresh", use_container_width=True):
-            st.session_state.cached_events  = None
-            st.session_state.cached_game_id = None
-            st.session_state.last_refresh   = datetime.now(ET)
-            st.cache_data.clear()
-            st.rerun()
+    # ──────────────────────────────────────────────────────────
+    # UPDATED SCOREBOARD LAYOUT (Matches image_a0b01d.png)
+    # ──────────────────────────────────────────────────────────
+    # We use one container so the logos, names, and scores sit on the same line
+    
+    away_logo_url = team_logo(away_eid) if away_eid else ""
+    home_logo_url = team_logo(home_eid) if home_eid else ""
 
-    # Place the badge in the newly defined col_badge
-    with col_badge:
-        if st.session_state.last_refresh:
-            st.markdown(
-                f"""
-                <div style="
-                    background-color: #2e7d32; 
-                    color: white; 
-                    padding: 8px 12px; 
-                    border-radius: 4px; 
-                    font-size: 14px; 
-                    font-weight: bold;
-                    width: fit-content;
-                    margin: 0; 
-                    display: block;
-                    white-space: nowrap;
-                ">
-                    Last refresh {st.session_state.last_refresh.strftime('%H:%M:%S ET')}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    st.markdown(
+        f"""
+        <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin: 20px 0;">
+            <!-- Away Team Logo & Name -->
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="{away_logo_url}" style="width: 50px; height: 50px; object-fit: contain;">
+                <span style="font-weight: 700; font-size: clamp(18px, 2.5vw, 30px);">{away_name}</span>
+            </div>
+            
+            <!-- Score Divider -->
+            <div style="font-weight: 700; font-size: clamp(18px, 2.5vw, 30px); color: #888;">
+                {live_away} <span style="color: white; margin: 0 10px;">–</span> {live_home}
+            </div>
+            
+            <!-- Home Team Name & Logo -->
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-weight: 700; font-size: clamp(18px, 2.5vw, 30px);">{home_name}</span>
+                <img src="{home_logo_url}" style="width: 50px; height: 50px; object-fit: contain;">
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     with st.spinner("Loading play-by-play…"):
         events = get_events(game_id)
