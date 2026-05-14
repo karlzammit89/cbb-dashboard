@@ -595,18 +595,24 @@ else:
                     help=btn_help
                 ):
                     st.session_state.last_refresh = datetime.now(ET)
+
                     for k in ("cached_events", "cached_game_id", "filtered_events"):
                         st.session_state[k] = None
-                    st.session_state.filters_applied    = False
-                    st.session_state.selected_game_id   = g_id
-                    st.session_state.selected_away_name = g_away
-                    st.session_state.selected_home_name = g_home
 
-                    st.session_state.selected_away_abbr = g_away[:6].upper()
-                    st.session_state.selected_home_abbr = g_home[:6].upper()
+                st.session_state.filters_applied    = False
+                st.session_state.selected_game_id   = g_id
 
-                    # IMPORTANT: save logo/source IDs
-                    st.session_state.selected_away_eid = g_away_sid
-                    st.session_state.selected_home_eid = g_home_sid
+                st.session_state.selected_away_name = g_away
+                st.session_state.selected_home_name = g_home
 
-                    st.rerun()
+                st.session_state.selected_away_abbr = g_away[:6].upper()
+                st.session_state.selected_home_abbr = g_home[:6].upper()
+
+                # SAVE LOGO IDS
+                st.session_state.selected_away_eid  = g_away_sid
+                st.session_state.selected_home_eid  = g_home_sid
+
+                st.session_state.selected_away_pts  = g_away_pts
+                st.session_state.selected_home_pts  = g_home_pts
+
+                st.rerun()
