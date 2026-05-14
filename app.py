@@ -332,27 +332,20 @@ if st.session_state.selected_game_id:
         live_away = events[-1]["away_score"] if events else 0
         live_home = events[-1]["home_score"] if events else 0
 
-    # Scoreboard Header with Logos
-    st.markdown(
-        f"""
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <div style="flex: 1; text-align: left;">
-                {"<img src='" + team_logo(away_eid) + "' width='60'>" if away_eid else ""}
-            </div>
-            <div style="flex: 4; text-align: center; font-weight: 700; font-size: clamp(18px, 3vw, 32px);">
-                <span>{away_name}</span> 
-                <span style="color: #888; margin: 0 5px;">{live_away}</span>
-                <span style="margin: 0 10px;">–</span>
-                <span style="color: #888; margin: 0 5px;">{live_home}</span>
-                <span>{home_name}</span>
-            </div>
-            <div style="flex: 1; text-align: right;">
-                {"<img src='" + team_logo(home_eid) + "' width='60'>" if home_eid else ""}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    c1, c2, c3 = st.columns([1, 6, 1])
+    with c1:
+        if away_eid:
+            st.image(team_logo(away_eid), width=60)
+    with c2:
+        st.markdown(
+            f"""<div style="display:flex;align-items:center;justify-content:center;
+                font-weight:700;font-size:clamp(16px,2.6vw,28px);gap:10px;flex-wrap:wrap;text-align:center;">
+                <span>{away_name}</span><span style="color:#888;">{live_away}</span>
+                <span>–</span>
+                <span style="color:#888;">{live_home}</span><span>{home_name}</span>
+            </div>""",
+            unsafe_allow_html=True,
+        )
     with c3:
         if home_eid:
             st.image(team_logo(home_eid), width=60)
