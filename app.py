@@ -314,23 +314,43 @@ if st.session_state.selected_game_id:
         live_away = events[-1]["away_score"] if events else 0
         live_home = events[-1]["home_score"] if events else 0
 
-    c1, c2, c3 = st.columns([1, 6, 1])
-    with c1:
-        if away_eid:
-            st.image(team_logo(away_eid), width=60)
-    with c2:
-        st.markdown(
-            f"""<div style="display:flex;align-items:center;justify-content:center;
-                font-weight:700;font-size:clamp(16px,2.6vw,28px);gap:10px;flex-wrap:wrap;text-align:center;">
-                <span>{away_name}</span><span style="color:#888;">{live_away}</span>
-                <span>–</span>
-                <span style="color:#888;">{live_home}</span><span>{home_name}</span>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-    with c3:
-        if home_eid:
-            st.image(team_logo(home_eid), width=60)
+    # ──────────────────────────────────────────────────────────
+    # NEW HORIZONTAL SCOREBOARD (Paste this here)
+    # ──────────────────────────────────────────────────────────
+    
+    # Ensure we have the logos by looking them up in the map
+    logo_map = fetch_logo_map()
+    away_id = logo_map.get(away_name, "")
+    home_id = logo_map.get(home_name, "")
+    
+    away_logo_url = team_logo(away_id) if away_id else ""
+    home_logo_url = team_logo(home_id) if home_id else ""
+
+    st.markdown(
+        f"""
+        <div style="display: flex; align-items: center; justify-content: center; gap: 30px; margin: 25px 0;">
+            <!-- Away Team Section -->
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="{away_logo_url}" style="width: 55px; height: 55px; object-fit: contain;">
+                <span style="font-weight: 700; font-size: 28px;">{away_name}</span>
+            </div>
+            
+            <!-- Center Score Section -->
+            <div style="font-weight: 700; font-size: 32px; display: flex; align-items: center; gap: 15px;">
+                <span style="color: #888;">{live_away}</span>
+                <span style="color: white;">–</span>
+                <span style="color: #888;">{live_home}</span>
+            </div>
+            
+            <!-- Home Team Section -->
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-weight: 700; font-size: 28px;">{home_name}</span>
+                <img src="{home_logo_url}" style="width: 55px; height: 55px; object-fit: contain;">
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     has_wc = sum(1 for e in events if e["action_dt"])
     total  = len(events)
