@@ -447,20 +447,40 @@ if st.session_state.selected_game_id:
         if USE_SC:
             st.info(f"🔥 Scoring plays filter — showing {n} of {t} plays")
 
+    logo_map = fetch_logo_map()
+
     for e in filtered:
+        # Resolve the logo for the team on this specific play
+        play_team_name = e.get("team")
+        play_team_sid = logo_map.get(play_team_name, "")
+        
+        # Build the HTML for the small logo
+        logo_html = ""
+        if play_team_sid:
+            logo_url = team_logo(play_team_sid)
+            logo_html = f"<img src='{logo_url}' style='width:20px; vertical-align:middle; margin-right:5px;'>"
+
         st.subheader(f"{e['emoji']} {e['period_label']} | ⏱️ {e['clock_str']}")
+        
+        # Meta info row: Play Type and Team (with Logo)
         meta_parts = []
-        if e["play_type"]: meta_parts.append(f"**{e['play_type']}**")
-        if e["team"]:      meta_parts.append(f"{e['team']}")
-        if meta_parts:     st.caption("  ·  ".join(meta_parts))
+        if e["play_type"]: 
+            meta_parts.append(f"**{e['play_type']}**")
+        
+        # Render the metadata with the logo injected via HTML
+        if meta_parts:
+            st.markdown(f"{' · '.join(meta_parts)} &nbsp;&nbsp; {logo_html}**{play_team_name}**", unsafe_allow_html=True)
+        elif play_team_name:
+            st.markdown(f"{logo_html}**{play_team_name}**", unsafe_allow_html=True)
+
         score_line = f"📊 **Score:** {e['score_str']}"
         if e["is_scoring"]:
             score_line += " &nbsp; 🔥 *Scoring Play!*"
+        
         st.markdown(score_line)
         st.markdown(f"📋 **Play:** {e['desc']}")
         st.markdown(f"🕐 **Time (ET):** `{e['action_dt_str']}`")
         st.divider()
-
 
 # ══════════════════════════════════════════════════════════════
 # HOME — SEARCH GAMES
