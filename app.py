@@ -332,26 +332,23 @@ if st.session_state.selected_game_id:
         live_away = events[-1]["away_score"] if events else 0
         live_home = events[-1]["home_score"] if events else 0
 
-    c1, c2, c3 = st.columns([1, 6, 1], gap="small")
-
-with c1:
-    if away_eid:
-        st.image(team_logo(away_eid), width=60)
-
-with c2:
-    st.markdown(
-        f"""<div style="display:flex;align-items:center;justify-content:center;
-            font-weight:700;font-size:clamp(16px,2.6vw,28px);gap:10px;flex-wrap:wrap;text-align:center;">
-            <span>{away_name}</span><span style="color:#888;">{live_away}</span>
-            <span>–</span>
-            <span style="color:#888;">{live_home}</span><span>{home_name}</span>
-        </div>""",
-        unsafe_allow_html=True,
-    )
-
-with c3:
-    if home_eid:
-        st.image(team_logo(home_eid), width=60)
+    c1, c2, c3 = st.columns([1, 6, 1])
+    with c1:
+        if away_eid:
+            st.image(team_logo(away_eid), width=60)
+    with c2:
+        st.markdown(
+            f"""<div style="display:flex;align-items:center;justify-content:center;
+                font-weight:700;font-size:clamp(16px,2.6vw,28px);gap:10px;flex-wrap:wrap;text-align:center;">
+                <span>{away_name}</span><span style="color:#888;">{live_away}</span>
+                <span>–</span>
+                <span style="color:#888;">{live_home}</span><span>{home_name}</span>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+    with c3:
+        if home_eid:
+            st.image(team_logo(home_eid), width=60)
 
     has_wc = sum(1 for e in events if e["action_dt"])
     total  = len(events)
@@ -587,33 +584,19 @@ else:
                 st.markdown(card_html, unsafe_allow_html=True)
 
                 # 3. Apply the disabled state and help tooltip
-if st.button(
-    btn_label,
-    key=f"pick_{g_id}",
-    use_container_width=True,
-    disabled=not has_started,
-    help=btn_help
-):
-    st.session_state.last_refresh = datetime.now(ET)
-
-    for k in ("cached_events", "cached_game_id", "filtered_events"):
-        st.session_state[k] = None
-
-    st.session_state.filters_applied = False
-    st.session_state.selected_game_id = g_id
-
-    st.session_state.selected_away_name = g_away
-    st.session_state.selected_home_name = g_home
-
-    st.session_state.selected_away_abbr = g_away[:6].upper()
-    st.session_state.selected_home_abbr = g_home[:6].upper()
-
-    # SAVE LOGO IDS
-    st.session_state.selected_away_eid = g_away_sid
-    st.session_state.selected_home_eid = g_home_sid
-
-    # SAVE SCORES
-    st.session_state.selected_away_pts = g_away_pts
-    st.session_state.selected_home_pts = g_home_pts
-
-    st.rerun()
+                if st.button(
+                    btn_label, 
+                    key=f"pick_{g_id}", 
+                    use_container_width=True,
+                    disabled=not has_started,
+                    help=btn_help
+                ):
+                    st.session_state.last_refresh = datetime.now(ET)
+                    for k in ("cached_events", "cached_game_id", "filtered_events"):
+                        st.session_state[k] = None
+                    st.session_state.filters_applied    = False
+                    st.session_state.selected_game_id   = g_id
+                    st.session_state.selected_away_name = g_away
+                    st.session_state.selected_home_name = g_home
+                    st.session_state.selected_away_abbr = g_away[:6].upper()
+                    st.rerun()
