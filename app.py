@@ -253,27 +253,50 @@ if st.session_state.selected_game_id:
     _team = st.session_state.get("last_search_team")
     _year = st.session_state.get("last_search_year")
     if _team:
-        col_back1, col_back2, _ = st.columns([1, 2, 6])
+        col_back1, col_back2, col_refresh, col_badge, _ = st.columns([1, 2, 1, 1.5, 2.5])
     else:
-        col_back1, _ = st.columns([1, 8])
+        col_back1, col_refresh, col_badge, _ = st.columns([1, 1, 1.5, 5.5])
         col_back2 = None
+
     with col_back1:
-        if st.button("⬅ Back"):
+        if st.button("⬅ Back", use_container_width=True):
             for k in ("cached_events", "cached_game_id", "filtered_events"):
                 st.session_state[k] = None
             st.session_state.filters_applied  = False
             st.session_state.selected_game_id = None
             st.session_state.search_results   = []
             st.session_state.search_done      = False
+            st.session_state.last_refresh     = None
             st.rerun()
+
     if col_back2 and _team:
         with col_back2:
-            if st.button(f"⬅ Back to {_team} {_year}"):
+            if st.button(f"⬅ Back to {_team} {_year}", use_container_width=True):
                 for k in ("cached_events", "cached_game_id", "filtered_events"):
                     st.session_state[k] = None
                 st.session_state.filters_applied  = False
                 st.session_state.selected_game_id = None
+                st.session_state.last_refresh     = None
                 st.rerun()
+
+    with col_refresh:
+        if st.button("🔄 Refresh", use_container_width=True):
+            st.session_state.cached_events  = None
+            st.session_state.cached_game_id = None
+            st.session_state.last_refresh   = datetime.now(ET)
+            st.cache_data.clear()
+            st.rerun()
+
+    with col_badge:
+        if st.session_state.last_refresh:
+            st.markdown(
+                f"""<div style="background-color:#2e7d32;color:white;padding:8px 12px;
+                    border-radius:4px;font-size:14px;font-weight:bold;
+                    width:fit-content;margin:0;display:block;white-space:nowrap;">
+                    Last refresh {st.session_state.last_refresh.strftime('%H:%M:%S ET')}
+                </div>""",
+                unsafe_allow_html=True,
+            )
 
     with st.spinner("Loading play-by-play…"):
         events = get_events(game_id)
@@ -409,25 +432,19 @@ if st.session_state.selected_game_id:
         if af.get("use_sc"):
             st.info(f"🔥 Scoring plays filter — showing {n} of {t} plays")
 
-    def _play_html(e: dict) -> str:
-        meta = []
-        if e["play_type"]: meta.append(f"<strong>{e['play_type']}</strong>")
-        if e["team"]:      meta.append(e["team"])
-        meta_str = " &middot; ".join(meta)
-        scoring_badge = " &nbsp; 🔥 <em>Scoring Play!</em>" if e["is_scoring"] else ""
-        return f"""
-        <div style="border-bottom:1px solid rgba(255,255,255,0.1);padding:14px 0 10px 0;">
-          <div style="font-size:1.1em;font-weight:700;margin-bottom:4px;">
-            {e['emoji']} {e['period_label']} &nbsp;|&nbsp; ⏱️ {e['clock_str']}
-          </div>
-          {f'<div style="font-size:0.82em;color:#aaa;margin-bottom:6px;">{meta_str}</div>' if meta_str else ''}
-          <div style="margin-bottom:3px;">📊 <strong>Score:</strong> {e['score_str']}{scoring_badge}</div>
-          <div style="margin-bottom:3px;">📋 <strong>Play:</strong> {e['desc']}</div>
-          <div style="font-size:0.85em;color:#888;">🕐 <strong>Time (ET):</strong> <code>{e['action_dt_str']}</code></div>
-        </div>"""
-
-    plays_html = "".join(_play_html(e) for e in filtered)
-    st.markdown(f'<div style="margin-top:8px;">{plays_html}</div>', unsafe_allow_html=True)
+    for e in filtered:
+        st.subheader(f"{e['emoji']} {e['period_label']} | ⏱️ {e['clock_str']}")
+        meta_parts = []
+        if e["play_type"]: meta_parts.append(f"**{e['play_type']}**")
+        if e["team"]:      meta_parts.append(f"{e['team']}")
+        if meta_parts:     st.caption("  ·  ".join(meta_parts))
+        score_line = f"📊 **Score:** {e['score_str']}"
+        if e["is_scoring"]:
+            score_line += " &nbsp; 🔥 *Scoring Play!*"
+        st.markdown(score_line)
+        st.markdown(f"📋 **Play:** {e['desc']}")
+        st.markdown(f"🕐 **Time (ET):** `{e['action_dt_str']}`")
+        st.divider()
 
 
 # ══════════════════════════════════════════════════════════════
