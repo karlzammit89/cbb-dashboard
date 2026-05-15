@@ -334,28 +334,6 @@ if st.session_state.selected_game_id:
     all_periods = sorted({e["period_label"] for e in events}, key=_period_sort_key)
     all_teams = sorted({e["team"] for e in events if e["team"]})
 
-    sel_halves = sel_teams = []  # placeholders — real values set below
-
-    START_DT = END_DT = None
-
-    if USE_Q:
-        sel_halves = st.multiselect("Half / OT", options=all_periods)
-    if USE_T:
-        if not all_dts:
-            st.warning("No wall-clock timestamps available.")
-        else:
-            tc1, tc2 = st.columns(2)
-            with tc1:
-                sd  = st.date_input("Start date", gs_default.date(), key="sd")
-                st_ = st.time_input("Start time", gs_default.time(), step=60, key="st_")
-            with tc2:
-                ed  = st.date_input("End date",   ge_default.date(), key="ed")
-                et_ = st.time_input("End time",   ge_default.time(), step=60, key="et_")
-            START_DT = datetime.combine(sd, st_).replace(tzinfo=ET)
-            END_DT   = datetime.combine(ed, et_).replace(tzinfo=ET)
-    if USE_TM:
-        sel_teams = st.multiselect("Team", options=all_teams)
-
     v = st.session_state.filter_version
     USE_Q  = st.checkbox("🏀 Filter by Half / OT",      key=f"q_{v}")
     USE_T  = st.checkbox("🕐 Filter by Actual Time (ET)", key=f"t_{v}")
