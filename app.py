@@ -73,6 +73,7 @@ _defaults = {
     "cached_game_id":     None,
     "filtered_events":    None,
     "filters_applied":    False,
+    "last_refresh":       None,
     "search_results":     [],
     "search_done":        False,
     "last_search_year":   None,
