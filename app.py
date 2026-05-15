@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 # ──────────────────────────────────────────────────────────────
 # PAGE CONFIG
 # ──────────────────────────────────────────────────────────────
-st.set_page_config(page_title="CBB Dashboard", page_icon="🏀", layout="wide")
+st.set_page_config(page_title="CBB Play by Play", page_icon="🏀", layout="wide")
 
 st.markdown("""
 <style>
@@ -18,7 +18,7 @@ footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🏀 College Basketball Dashboard")
+st.title("🏀 CBB Play by Play")
 
 # ──────────────────────────────────────────────────────────────
 # CONSTANTS
