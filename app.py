@@ -575,5 +575,6 @@ else:
                     st.session_state.selected_away_pts  = int(g_away_pts) if str(g_away_pts).isdigit() else None
                     st.session_state.selected_home_pts  = int(g_home_pts) if str(g_home_pts).isdigit() else None
                     st.session_state.selected_year      = int(g.get("season") or search_year)
+                    st.session_state.last_refresh       = datetime.now(ET)
                     # Keep search_results and search_done so Back to team schedule restores the list
                     st.rerun()
