@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 # ──────────────────────────────────────────────────────────────
 # PAGE CONFIG
 # ──────────────────────────────────────────────────────────────
-st.set_page_config(page_title="CBB Play by Play", page_icon="🏀", layout="wide")
+st.set_page_config(page_title="CBB Dashboard", page_icon="🏀", layout="wide")
 
 st.markdown("""
 <style>
@@ -18,7 +18,7 @@ footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🏀 CBB Play by Play")
+st.title("🏀 College Basketball Dashboard")
 
 # ──────────────────────────────────────────────────────────────
 # CONSTANTS
@@ -561,7 +561,11 @@ else:
                 )
                 st.markdown(card_html, unsafe_allow_html=True)
 
-                if st.button("▶ Open", key=f"pick_{g_id}", use_container_width=True):
+                has_started = g.get("awayPoints") is not None or g.get("away_points") is not None
+                btn_label   = "▶ Open" if has_started else "⏳ Not Started"
+                btn_help    = None if has_started else "Data will be available once the game starts."
+                if st.button(btn_label, key=f"pick_{g_id}", use_container_width=True,
+                             disabled=not has_started, help=btn_help):
                     for k in ("cached_events", "cached_game_id", "filtered_events"):
                         st.session_state[k] = None
                     st.session_state.filters_applied    = False
